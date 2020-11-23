@@ -100,6 +100,7 @@ func (r *dnsResolver) periodicallyResolve() {
 	for {
 		select {
 		case <-ticker.C:
+			r.logger.Info("dnsResolver start a new round")
 			ctx, cancel := context.WithTimeout(context.Background(), r.resTimeout)
 			if _, err := r.resolve(ctx); err != nil {
 				r.logger.Warn("failed to resolve", zap.Error(err))
@@ -162,6 +163,7 @@ func (r *dnsResolver) resolve(ctx context.Context) ([]string, error) {
 	}
 	r.changeCallbackLock.RUnlock()
 
+	r.logger.Info(fmt.Sprintf("the end of resolve, endpoints %s", r.endpoints))
 	return r.endpoints, nil
 }
 
