@@ -143,6 +143,7 @@ func (r *dnsResolver) resolve(ctx context.Context) ([]string, error) {
 
 	// keep it always in the same order
 	sort.Strings(backends)
+	r.logger.Info(fmt.Sprintf("old endpoints %v, new endpoints %v", r.endpoints, backends))
 
 	if equalStringSlice(r.endpoints, backends) {
 		return r.endpoints, nil
