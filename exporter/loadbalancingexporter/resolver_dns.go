@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -118,7 +117,7 @@ func (r *dnsResolver) resolve(ctx context.Context) ([]string, error) {
 	// the context to use for all metrics in this function
 	mCtx, _ := tag.New(ctx, tag.Upsert(tag.MustNewKey("resolver"), "dns"))
 
-	addrs, err := r.resolver.LookupIPAddr(ctx, trimPort(r.hostname))
+	addrs, err := r.resolver.LookupIPAddr(ctx, r.hostname)
 	if err != nil {
 		failedCtx, _ := tag.New(mCtx, tag.Upsert(tag.MustNewKey("success"), "false"))
 		stats.Record(failedCtx, mNumResolutions.M(1))
@@ -181,11 +180,4 @@ func equalStringSlice(source, candidate []string) bool {
 	}
 
 	return true
-}
-
-func trimPort(hostname string) string {
-	if strings.Contains(hostname, ":") {
-		return strings.Split(hostname, ":")[0]
-	}
-	return hostname
 }

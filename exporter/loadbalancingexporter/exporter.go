@@ -120,7 +120,7 @@ func (e *exporterImp) Start(ctx context.Context, host component.Host) error {
 }
 
 func (e *exporterImp) onBackendChanges(resolved []string) {
-	resolved = sort.StringSlice(endpointsWithPort(resolved))
+	resolved = sort.StringSlice(resolved)
 	newRing := newHashRing(resolved)
 
 	if !newRing.equal(e.ring) {
@@ -140,6 +140,8 @@ func (e *exporterImp) onBackendChanges(resolved []string) {
 
 func (e *exporterImp) addMissingExporters(ctx context.Context, endpoints []string) {
 	for _, endpoint := range endpoints {
+		endpoint = endpointWithPort(endpoint)
+
 		if _, exists := e.exporters[endpoint]; !exists {
 			cfg := e.buildExporterConfig(endpoint)
 			exp, err := e.exporterFactory.CreateTracesExporter(ctx, e.templateCreateParams, &cfg)
@@ -254,11 +256,4 @@ func endpointWithPort(endpoint string) string {
 		endpoint = fmt.Sprintf("%s:%s", endpoint, defaultPort)
 	}
 	return endpoint
-}
-
-func endpointsWithPort(endpoints []string) (ret []string) {
-	for _, endpoint := range endpoints {
-		ret = append(ret, endpointWithPort(endpoint))
-	}
-	return
 }
