@@ -184,9 +184,6 @@ func (e *exporterImp) Shutdown(context.Context) error {
 }
 
 func (e *exporterImp) ConsumeTraces(ctx context.Context, td pdata.Traces) error {
-	e.updateLock.RLock()
-	defer e.updateLock.RUnlock()
-
 	var errors []error
 	batches := batchpertrace.Split(td)
 	for _, batch := range batches {
@@ -204,8 +201,10 @@ func (e *exporterImp) consumeTrace(ctx context.Context, td pdata.Traces) error {
 		return errNoTracesInBatch
 	}
 
+	e.updateLock.RLock()
 	endpoint := e.ring.endpointFor(traceID)
 	exp, found := e.exporters[endpoint]
+	e.updateLock.RUnlock()
 	if !found {
 		// something is really wrong... how come we couldn't find the exporter??
 		return fmt.Errorf("couldn't find the exporter for the endpoint %q", endpoint)
