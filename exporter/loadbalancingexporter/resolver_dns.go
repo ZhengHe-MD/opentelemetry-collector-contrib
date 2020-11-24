@@ -85,6 +85,7 @@ func (r *dnsResolver) start(ctx context.Context) error {
 }
 
 func (r *dnsResolver) shutdown(ctx context.Context) error {
+	r.logger.Info("dnsResolver shutdown called")
 	r.changeCallbackLock.Lock()
 	r.onChangeCallbacks = nil
 	r.changeCallbackLock.Unlock()
@@ -107,6 +108,7 @@ func (r *dnsResolver) periodicallyResolve() {
 			}
 			cancel()
 		case <-r.stopCh:
+			r.logger.Info("dnsResolver received stopCh")
 			return
 		}
 	}
@@ -144,7 +146,7 @@ func (r *dnsResolver) resolve(ctx context.Context) ([]string, error) {
 
 	// keep it always in the same order
 	sort.Strings(backends)
-	r.logger.Info(fmt.Sprintf("old endpoints %v, new endpoints %v", r.endpoints, backends))
+	r.logger.Info(fmt.Sprintf("dnsResolver old endpoints %v, new endpoints %v", r.endpoints, backends))
 
 	if equalStringSlice(r.endpoints, backends) {
 		return r.endpoints, nil
@@ -152,18 +154,21 @@ func (r *dnsResolver) resolve(ctx context.Context) ([]string, error) {
 
 	// the list has changed!
 	r.updateLock.Lock()
+	r.logger.Info(fmt.Sprintf("dnsResolver enter r.updateLock"))
 	r.endpoints = backends
 	r.updateLock.Unlock()
 	stats.Record(mCtx, mNumBackends.M(int64(len(backends))))
 
+	r.logger.Info(fmt.Sprintf("dnsResolver out of r.updateLock"))
 	// propagate the change
 	r.changeCallbackLock.RLock()
+	r.logger.Info(fmt.Sprintf("dnsResolver enter changeCallbackLock"))
 	for _, callback := range r.onChangeCallbacks {
 		callback(r.endpoints)
 	}
 	r.changeCallbackLock.RUnlock()
 
-	r.logger.Info(fmt.Sprintf("the end of resolve, endpoints %s", r.endpoints))
+	r.logger.Info(fmt.Sprintf("dnsResolver the end of resolve, endpoints %s", r.endpoints))
 	return r.endpoints, nil
 }
 
