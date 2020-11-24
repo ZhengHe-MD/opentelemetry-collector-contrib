@@ -50,6 +50,7 @@ var (
 type exporterImp struct {
 	logger *zap.Logger
 	config Config
+	host   component.Host
 
 	res  resolver
 	ring *hashRing
@@ -112,6 +113,7 @@ func newExporter(params component.ExporterCreateParams, cfg configmodels.Exporte
 
 func (e *exporterImp) Start(ctx context.Context, host component.Host) error {
 	e.res.onChange(e.onBackendChanges)
+	e.host = host
 	if err := e.res.start(ctx); err != nil {
 		return err
 	}
@@ -146,8 +148,11 @@ func (e *exporterImp) addMissingExporters(ctx context.Context, endpoints []strin
 			cfg := e.buildExporterConfig(endpoint)
 			exp, err := e.exporterFactory.CreateTracesExporter(ctx, e.templateCreateParams, &cfg)
 			if err != nil {
-				e.logger.Warn("failed to create new trace exporter for endpoint", zap.String("endpoint", endpoint))
+				e.logger.Error("failed to create new trace exporter for endpoint", zap.String("endpoint", endpoint))
 				continue
+			}
+			if err = exp.Start(ctx, e.host); err != nil {
+				e.logger.Error("failed to start new trace exporter for endpoint", zap.String("endpoint", endpoint), zap.Error(err))
 			}
 			e.exporters[endpoint] = exp
 		}
